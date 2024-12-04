@@ -1,3 +1,4 @@
+from queue import Queue
 
 class Executor:
 
@@ -28,34 +29,68 @@ class ScreenSetup(Executor):
     def execute(self):
         if not self.integrity_check(3):
             return False
-        
         return True
+
+class CursorMove(Executor):
+    def __init__(self, hex_stream):
+        super().__init__(hex_stream)
+        self.x = self.hex_stream[2]
+        self.y = self.hex_stream[3]
+
+    def execute(self):
+        # Check the integrity of the command
+        if not self.integrity_check(2):  # Expecting 2 arguments: x and y
+            return False
+        # Perform the cursor movement (you can replace this with your actual implementation)
+        print(f"Cursor moved to position ({self.x}, {self.y})")
+        return True
+
     
 
-class CommandSwitch:
-    def __init__(self, hex_stream):
-        self.hex_stream = hex_stream
+class CommandSwitch: #controller
+    def __init__(self):
         self.screenInit = False
+        self.commandQueue = Queue()
         self.COMMANDS = {
             0x01: ScreenSetup,
-            #0x2: 0x2,
+            0x05: CursorMove,
+            0x08: RenderAll,
             # "draw_line": 0x3,
             # "render_text": 0x4,
             # "cursor_movement": 0x5,
             # "draw_at_cursor": 0x6,
             # "clear_screen": 0x7
         }
+    def appendCommand(self):  
+        if self.hex_stream[0] == 0x01:
+            self.screenInit = True      
+        self.commandQueue.put(self.hex_stream)
+        print("Command appended to queue, please enter another command")
 
-    def execute(self):
+    def execute(self, hex_stream):
+        self.hex_stream = hex_stream
         command = self.hex_stream[0]
         is_done = False
-        if command in self.COMMANDS:
-            print("command found")
-            is_done = self.COMMANDS[command](self.hex_stream).execute()
-        else:
+
+        if not self.screenInit and command != 0x01:
+            print("Screen not initialized")
+            return False
+        if command not in self.COMMANDS:
+            print("Command", command)
             raise ValueError("Command not recognized")
-        
-        if is_done and command == 0x01:
-            self.screenInit = True
+        if command == 0x08:
+            return self.COMMANDS[command]().execute(self.commandQueue)
+       
+        self.appendCommand()
+
         
         return is_done
+
+class RenderAll(CommandSwitch):
+    def execute(self, commandQueue):
+        while not commandQueue.empty():
+            commandStream = commandQueue.get()
+            command = commandStream[0]
+            self.COMMANDS[command](commandStream).execute()
+            print("Executed command", command)
+        return True

@@ -26,9 +26,9 @@ def main():
     running = True
     session = None
 
-    print("\n\nTERMINAL\n")
+    print("\n\nTERMINAL")
     while running:
-        command = input("Enter command: ")
+        command = input("\nEnter command: ")
         command_name = command.split(" ")[:1]
         args = command.split(" ")[1:] 
 

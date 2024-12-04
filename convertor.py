@@ -81,7 +81,8 @@ class ScreenSetup(Command):
         print("Hex Stream:", " ".join(hex_stream))
 
 
-        intiatedScreenSession = executor.CommandSwitch(stream).execute()
+        intiatedScreenSession = executor.CommandSwitch()
+        intiatedScreenSession.execute(stream)
         return intiatedScreenSession
 
 
@@ -187,9 +188,30 @@ class CursorMove(Command):
         except:
             print(f"[x] Command failed, Please ensure all your inputs for this command are correct")
 
+class DrawAtCursor(Command):
+    HEX_ID = 0x6
+    allowed_args = 2
+
+    def to_hex(self, screenSession=None):
+        if (screenSession is None):
+            print("Screen session must be initiated before drawing at cursor.")
+            return screenSession
+        if len(self.args) != self.allowed_args:
+            print(f"[x] Command failed, Please ensure all your inputs for this command are correct")
+
+        char, color = self.args
+        try:
+            char = ord(char)
+            color = self.convert_color(color, "monochrome")
+            stream = [self.HEX_ID, self.allowed_args, color, char, 0xFF]
+            self.execute(stream)
+        except:
+            print(f"[x] Command failed, Please ensure all your inputs for this command are correct")
+        
+
 
 class ClearScreen(Command):
-    HEX_ID = 0x6
+    HEX_ID = 0x7
     allowed_args = 1
 
     def to_hex(self, screenSession=None):
@@ -205,14 +227,18 @@ class ClearScreen(Command):
 
 
 class Render(Command):
-    HEX_ID = 0x7
-    allowed_args = 1
+    HEX_ID = 0x8
+    allowed_args = 0
     
     def to_hex(self, screenSession=None):
         if (screenSession is None):
             print("Screen session must be initiated before rendering.")
         if len(self.args) != self.allowed_args:
+            print(len(self.args))
             print(f"[x] Command failed, Please ensure all your inputs for this command are correct")
 
         stream = [self.HEX_ID, self.allowed_args, 0xFF]
-        self.execute(stream)
+
+        print("Screen session:", screenSession)
+        intiatedScreenSession = screenSession.execute(stream)
+        return intiatedScreenSession
