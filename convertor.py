@@ -102,7 +102,8 @@ class DrawCharacter(Command):
             char = ord(char)
             color = self.convert_color(color, "monochrome")
             stream = [self.HEX_ID, allowed_args, x, y, color, char, 0xFF]
-            self.execute(stream)
+            screenSession.execute(stream)
+            return screenSession
             #return stream #draw_char 3 4 blue A
         except:
             print(f"[x] Command failed, Please ensure all your inputs for this command are correct")
@@ -135,7 +136,8 @@ class DrawLine(Command):
 
 class RenderText(Command):
     HEX_ID = 0x4
-    def to_hex(self):
+
+    def to_hex(self, screenSession=None):
         allowed_args = 4 #This is the minimum args acceptible, no upper bound
         if len(self.args) < allowed_args:
             print(f"[x] Command failed, Please ensure all your inputs for this command are correct")
@@ -151,7 +153,8 @@ class RenderText(Command):
             stream = [self.HEX_ID, allowed_args + len(chars), x, y, colorIndex]
             stream.extend(chars)
             stream.append(0xFF)
-            self.execute(stream)
+            screenSession.execute(stream)
+            return screenSession
             #return stream
         except:
             print(f"[x] Command failed, Please ensure all your inputs for this command are correct")
@@ -184,8 +187,10 @@ class CursorMove(Command):
             y = int(y)
 
             stream = [self.HEX_ID, allowed_args, x, y, 0xFF]
-            self.execute(stream)
+            screenSession.execute(stream)
+            return screenSession
         except:
+            print("len", len(self.args))
             print(f"[x] Command failed, Please ensure all your inputs for this command are correct")
 
 class DrawAtCursor(Command):
@@ -204,7 +209,8 @@ class DrawAtCursor(Command):
             char = ord(char)
             color = self.convert_color(color, "monochrome")
             stream = [self.HEX_ID, self.allowed_args, color, char, 0xFF]
-            self.execute(stream)
+            screenSession.execute(stream)
+            return screenSession
         except:
             print(f"[x] Command failed, Please ensure all your inputs for this command are correct")
         
@@ -212,7 +218,7 @@ class DrawAtCursor(Command):
 
 class ClearScreen(Command):
     HEX_ID = 0x7
-    allowed_args = 1
+    allowed_args = 0
 
     def to_hex(self, screenSession=None):
         if (screenSession is None):
@@ -222,7 +228,8 @@ class ClearScreen(Command):
             print(f"[x] Command failed, Please ensure all your inputs for this command are correct")
         
         stream = [self.HEX_ID, self.allowed_args, 0xFF]
-        self.execute(stream)
+        screenSession.execute(stream)
+        return screenSession
 
 
 
@@ -240,5 +247,6 @@ class Render(Command):
         stream = [self.HEX_ID, self.allowed_args, 0xFF]
 
         print("Screen session:", screenSession)
-        intiatedScreenSession = screenSession.execute(stream)
-        return intiatedScreenSession
+        screenSession.execute(stream)
+        return screenSession
+        
