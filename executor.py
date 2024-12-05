@@ -4,7 +4,7 @@ class Executor:
 
     def __init__(self, hex_stream):
         self.hex_stream = hex_stream
-
+        
         self.command = self.hex_stream[0]
         self.instructionLength = self.hex_stream[1] # to check stream integrity
         self.trailingHex = self.hex_stream[-1] # to check stream integrity
@@ -29,7 +29,8 @@ class ScreenSetup(Executor):
     def execute(self):
         if not self.integrity_check(3):
             return False
-        return True
+        print(f"Screen setup: {self.width}x{self.height}, color mode {self.color}")
+        return [[" " for _ in range(self.width)] for _ in range(self.height)]
 
 class CursorMove(Executor):
     def __init__(self, hex_stream):
@@ -37,7 +38,7 @@ class CursorMove(Executor):
         self.x = self.hex_stream[2]
         self.y = self.hex_stream[3]
 
-    def execute(self):
+    def execute(self, screen):
         # Check the integrity of the command
         if not self.integrity_check(2):  # Expecting 2 arguments: x and y
             return False
@@ -45,14 +46,34 @@ class CursorMove(Executor):
         print(f"Cursor moved to position ({self.x}, {self.y})")
         return True
 
+class DrawCharacter(Executor):
+    def __init__(self, hex_stream):
+        super().__init__(hex_stream)
+        self.x = self.hex_stream[2]
+        self.y = self.hex_stream[3]
+        self.color = self.hex_stream[4]
+        self.char = self.hex_stream[5]
+
+    def execute(self, screen):
+        # Check the integrity of the command
+        if not self.integrity_check(4):  # Expecting 4 arguments: x, y, color, char
+            return False
+        try:
+            screen[self.x][self.y] = chr(self.char)
+            print(f"Drawn '{self.char}' at ({self.x}, {self.y}) with color {self.color}")
+        except IndexError:
+            print("Error: Coordinates out of bounds.")
+        return True
     
 
 class CommandSwitch: #controller
     def __init__(self):
         self.screenInit = False
+        self.screen = None
         self.commandQueue = Queue()
         self.COMMANDS = {
             0x01: ScreenSetup,
+            0x02: DrawCharacter,
             0x05: CursorMove,
             0x08: RenderAll,
             # "draw_line": 0x3,
@@ -75,11 +96,17 @@ class CommandSwitch: #controller
         if not self.screenInit and command != 0x01:
             print("Screen not initialized")
             return False
+        
+        if command == 0x01:
+            self.screen = self.COMMANDS[command](self.hex_stream).execute()
+            self.screenInit = True
+            return True
+        
         if command not in self.COMMANDS:
             print("Command", command)
             raise ValueError("Command not recognized")
         if command == 0x08:
-            return self.COMMANDS[command]().execute(self.commandQueue)
+            return self.COMMANDS[command]().execute(self.commandQueue, self.screen)
        
         self.appendCommand()
 
@@ -87,10 +114,11 @@ class CommandSwitch: #controller
         return is_done
 
 class RenderAll(CommandSwitch):
-    def execute(self, commandQueue):
+    def execute(self, commandQueue, screen):
         while not commandQueue.empty():
             commandStream = commandQueue.get()
             command = commandStream[0]
-            self.COMMANDS[command](commandStream).execute()
+            self.COMMANDS[command](commandStream).execute(screen)
             print("Executed command", command)
+        print("\n".join("".join(row) for row in screen))
         return True
