@@ -60,11 +60,28 @@ class DrawCharacter(Executor):
             return False
         try:
             screen[self.x][self.y] = chr(self.char)
-            print(f"Drawn '{self.char}' at ({self.x}, {self.y}) with color {self.color}")
         except IndexError:
             print("Error: Coordinates out of bounds.")
         return True
-    
+
+class DrawLine(Executor):
+    def __init__(self, hex_stream):
+        super().__init__(hex_stream)
+        self.x1 = self.hex_stream[2]
+        self.y1 = self.hex_stream[3]
+        self.x2 = self.hex_stream[4]
+        self.y2 = self.hex_stream[5]
+        self.color = self.hex_stream[6]
+        self.char = self.hex_stream[7]
+
+    def execute(self, screen):
+        if not self.integrity_check(6):  # Expecting 6 arguments: x1, y1, x2, y2, color, char
+            return False
+        try:
+            
+        except:
+            print("Error: Coordinates out of bounds.")
+        return True  
 
 class CommandSwitch: #controller
     def __init__(self):
@@ -74,6 +91,7 @@ class CommandSwitch: #controller
         self.COMMANDS = {
             0x01: ScreenSetup,
             0x02: DrawCharacter,
+            0x03: DrawLine,
             0x05: CursorMove,
             0x08: RenderAll,
             # "draw_line": 0x3,

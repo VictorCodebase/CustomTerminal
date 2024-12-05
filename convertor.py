@@ -88,8 +88,13 @@ class ScreenSetup(Command):
 
 class DrawCharacter(Command):
     HEX_ID = 0x2
+
     def to_hex(self, screenSession=None):
         allowed_args = 4
+
+        if (screenSession is None):
+            print("Screen session must be initiated before running this command")
+            return screenSession
         if len(self.args) != allowed_args:
             print(f"[x] Command failed, Please ensure all your inputs for this command are correct")
         
@@ -128,7 +133,7 @@ class DrawLine(Command):
             char = ord(char)
 
             stream = [self.HEX_ID, allowed_args, x1, y1, x2, y2, colorIndex, char, 0xFF]
-            screenSession = screenSession.execute(stream)
+            screenSession.execute(stream)
             return screenSession
         except:
             print(f"[x] Command failed, Please ensure all your inputs for this command are correct")
