@@ -77,11 +77,45 @@ class DrawLine(Executor):
     def execute(self, screen):
         if not self.integrity_check(6):  # Expecting 6 arguments: x1, y1, x2, y2, color, char
             return False
+
+        char_representation = chr(self.char)
+
         try:
-            
-        except:
+            if self.y1 == self.y2:
+                # Horizontal line
+                for x in range(min(self.x1, self.x2), max(self.x1, self.x2) + 1):
+                    screen[self.y1][x] = char_representation
+
+            elif self.x1 == self.x2:
+                # Vertical line
+                for y in range(min(self.y1, self.y2), max(self.y1, self.y2) + 1):
+                    screen[y][self.x1] = char_representation
+
+            else:
+                # Diagonal line using Bresenham's line algorithm
+                dx = abs(self.x2 - self.x1)
+                dy = abs(self.y2 - self.y1)
+                sx = 1 if self.x1 < self.x2 else -1
+                sy = 1 if self.y1 < self.y2 else -1
+                err = dx - dy
+
+                x, y = self.x1, self.y1
+                while True:
+                    screen[y][x] = char_representation
+                    if x == self.x2 and y == self.y2:
+                        break
+                    e2 = 2 * err
+                    if e2 > -dy:
+                        err -= dy
+                        x += sx
+                    if e2 < dx:
+                        err += dx
+                        y += sy
+
+        except IndexError:
             print("Error: Coordinates out of bounds.")
-        return True  
+        return True
+
 
 class CommandSwitch: #controller
     def __init__(self):
