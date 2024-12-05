@@ -32,19 +32,30 @@ class ScreenSetup(Executor):
         print(f"Screen setup: {self.width}x{self.height}, color mode {self.color}")
         return [[" " for _ in range(self.width)] for _ in range(self.height)]
 
-class CursorMove(Executor):
+class MoveCursor(Executor):
     def __init__(self, hex_stream):
         super().__init__(hex_stream)
         self.x = self.hex_stream[2]
         self.y = self.hex_stream[3]
 
     def execute(self, screen):
-        # Check the integrity of the command
-        if not self.integrity_check(2):  # Expecting 2 arguments: x and y
+        cursor_state = {"x": 0, "y": 0}
+        if not self.integrity_check(2):
             return False
-        # Perform the cursor movement (you can replace this with your actual implementation)
-        print(f"Cursor moved to position ({self.x}, {self.y})")
+
+        # Check if target position is within screen bounds
+        max_width = len(screen[0])
+        max_height = len(screen)
+        if not (0 <= self.x < max_width and 0 <= self.y < max_height):
+            print(f"Error: Target position ({self.x}, {self.y}) is out of bounds.")
+            return False
+
+        # Update cursor state
+        cursor_state["x"] = self.x
+        cursor_state["y"] = self.y
+        print(f"Cursor moved to ({self.x}, {self.y})")
         return True
+
 
 class DrawCharacter(Executor):
     def __init__(self, hex_stream):
@@ -115,6 +126,25 @@ class DrawLine(Executor):
         except IndexError:
             print("Error: Coordinates out of bounds.")
         return True
+    
+
+
+class RenderText(Executor):
+    def __init__(self, hex_stream):
+        super().__init__(hex_stream)
+        self.x = self.hex_stream[2]
+        self.y = self.hex_stream[3]
+        self.color = self.hex_stream[4]
+        self.text = self.hex_stream[5:hex_stream.index(0xFF)]
+
+    def execute(self, screen):
+        try:
+            for i, char in enumerate(self.text):
+                screen[self.y][self.x + i] = chr(char)
+
+        except IndexError:
+            print("Error: Coordinates out of bounds.")
+        return True
 
 
 class CommandSwitch: #controller
@@ -126,7 +156,8 @@ class CommandSwitch: #controller
             0x01: ScreenSetup,
             0x02: DrawCharacter,
             0x03: DrawLine,
-            0x05: CursorMove,
+            0x04: RenderText,
+            0x05: MoveCursor,
             0x08: RenderAll,
             # "draw_line": 0x3,
             # "render_text": 0x4,

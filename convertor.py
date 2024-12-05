@@ -147,8 +147,11 @@ class RenderText(Command):
         if len(self.args) < allowed_args:
             print(f"[x] Command failed, Please ensure all your inputs for this command are correct")
 
+        textWithSpaces = []
         x, y, colorIndex, *textChars = self.args
-        chars = self.textCharsToOrd(textChars)
+        for text in textChars:
+            textWithSpaces.append(text + " ")
+        chars = self.textCharsToOrd(textWithSpaces)
 
         try:
             x = int(x)
