@@ -210,12 +210,14 @@ class DrawAtCursor(Command):
             print("Screen session must be initiated before drawing at cursor.")
             return screenSession
         if len(self.args) != self.allowed_args:
-            print(f"[x] Command failed, Please ensure all your inputs for this command are correct")
+            print(f"[x] Command failed, Please ensure you have entered the right number of args")
+            return screenSession
 
         char, color = self.args
+        color = self.convert_color(color, "monochrome")
+
         try:
             char = ord(char)
-            color = self.convert_color(color, "monochrome")
             stream = [self.HEX_ID, self.allowed_args, color, char, 0xFF]
             screenSession.execute(stream)
             return screenSession

@@ -8,6 +8,7 @@ class CommandFactory:
         "draw_line": convertor.DrawLine, #eg. draw_line 6 2 3 10 white *
         "render_text": convertor.RenderText, #eg render_text 2 2 white hello brother
         "cursor_move": convertor.CursorMove, #eg cursor_move 2 2
+        "Draw_at_cursor": convertor.DrawAtCursor, #eg Draw_at_cursor X white
         "render": convertor.Render, #eg render
         "clear_screen": convertor.ClearScreen #eg clear_screen
     }
