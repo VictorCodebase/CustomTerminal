@@ -170,6 +170,19 @@ class RendarCharOnCursor(Executor):
             print("Error: Coordinates out of bounds.")
         print(f"Character {chr(self.char)} rendered at cursor position {cursor_state}")
         return True
+    
+class ClearScreen(Executor):
+    def __init__(self, hex_stream):
+        super().__init__(hex_stream)
+
+    def execute(self, screen, cursor_state):
+        for i in range(len(screen)):
+            for j in range(len(screen[i])):
+                screen[i][j] = " "
+        cursor_state["x"] = 0
+        cursor_state["y"] = 0
+        print("Screen cleared, cursor reset to (0, 0)")
+        return True
 
 class CommandSwitch: #controller
     def __init__(self):
@@ -184,12 +197,8 @@ class CommandSwitch: #controller
             0x04: RenderText,
             0x05: MoveCursor,
             0x06: RendarCharOnCursor,
+            0x07: ClearScreen,
             0x08: RenderAll,
-            # "draw_line": 0x3,
-            # "render_text": 0x4,
-            # "cursor_movement": 0x5,
-            # "draw_at_cursor": 0x6,
-            # "clear_screen": 0x7
         }
     def appendCommand(self):  
         if self.hex_stream[0] == 0x01:

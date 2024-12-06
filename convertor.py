@@ -7,11 +7,8 @@ class Command:
         self.session = session
 
     def to_hex(self, screenSession=None):
-        """Convert command arguments to hex stream. Override in subclasses."""
+        """Convert command arguments to hex stream. to be overridden in subclasses."""
         raise NotImplementedError
-
-    def serveInstructions(self):
-        print("\nYour input was invalid. The following syntax is expected for the corresponding command:\n \tscreen_setup <screen_width (int)> <screen_height (int)> <color_mode (monochrome, 16colors, 256colors)")
 
     def convert_color(self, color, mode):
         color_map = {}
@@ -36,49 +33,38 @@ class Command:
 
     def execute(stream):
         executor.CommandSwitch(stream).execute()
-
-#!Is this necessary
-class Logger:
-    @staticmethod    
-    def valueErr(message):
-        print(f"\n[x] Failed: value error, {message}")
-        quit()
-
     
-    def log(message):
-        print(f"\n[v] Success: {message}")
-    
+    def syntaxError(self, instructions):
+        print(f"[x] Command syntax error, the parameters for this command are not correct. Here is what the command expected. \n{instructions}")
+
 
 class ScreenSetup(Command):
     HEX_ID = 0x1
-    print("Screen Setup Command")
-    instructions = ""
+    instructions = "\n\tScreen setup: screen_setup <screen_width (int)> <screen_height (int)> <color_mode (monochrome, 16colors or 256colors)> \n\tExample: screen_setup 80 24 16colors"
 
     def to_hex(self, screenSession=None):
-
         if screenSession is not None:
             print("Screen session already initiated. Please clear screen before setting up a new one.")
             return screenSession
 
         allowed_args = 3
         if len(self.args) != allowed_args:
-            print(f"[x] Command failed, Please ensure all your inputs for this command are correct")
-        
+            self.syntaxError(self.instructions)
         width, height, color = self.args
         color_mode_map = {"monochrome": 0x00, "16colors": 0x01, "256colors": 0x02}
-        if color not in color_mode_map: Logger.valueErr("Color not recognized")
 
         try:
+            if color not in color_mode_map: 
+                self.syntaxError(self.instructions)
             width = int(width)
             height = int(height)
             color = int(color_mode_map[color])
-
         except:
-            print(f"[x] Command failed, Please ensure all your inputs for this command are correct")
+            self.syntaxError(self.instructions)
 
         stream = [self.HEX_ID, allowed_args, width, height, color, 0xFF]
-        hex_stream = [f"0x{byte:02X}" for byte in stream]
-        print("Hex Stream:", " ".join(hex_stream))
+        # hex_stream = [f"0x{byte:02X}" for byte in stream]
+        # print("Hex Stream:", " ".join(hex_stream))
 
 
         intiatedScreenSession = executor.CommandSwitch()
@@ -88,6 +74,7 @@ class ScreenSetup(Command):
 
 class DrawCharacter(Command):
     HEX_ID = 0x2
+    instructions = "\n\tDraw character: draw_char <x (int)> <y (int)> <color (str)> <char (str)> \n\tExample: draw_char 0 0 white A"
 
     def to_hex(self, screenSession=None):
         allowed_args = 4
@@ -96,7 +83,7 @@ class DrawCharacter(Command):
             print("Screen session must be initiated before running this command")
             return screenSession
         if len(self.args) != allowed_args:
-            print(f"[x] Command failed, Please ensure all your inputs for this command are correct")
+            self.syntaxError(self.instructions)
         
         x, y, color, char = self.args
 
@@ -111,16 +98,18 @@ class DrawCharacter(Command):
             return screenSession
             #return stream #draw_char 3 4 blue A
         except:
-            print(f"[x] Command failed, Please ensure all your inputs for this command are correct")
+            self.syntaxError(self.instructions)
 
 class DrawLine(Command):
     HEX_ID = 0x3
+    instructions = "\n\tDraw line: draw_line <x1 (int)> <y1 (int)> <x2 (int)> <y2 (int)> <color (str)> <char (str)> \n\tExample: draw_line 6 2 3 10 white *"
+
     def to_hex(self, screenSession=None):
         if (screenSession is None):
             print("Screen session must be initiated before running this command")
         allowed_args = 6
         if len(self.args) != allowed_args:
-            print(f"[x] Command failed, Please ensure all your inputs for this command are correct")
+            self.syntaxError(self.instructions)
         
         x1, y1, x2, y2, colorIndex, char = self.args
 
@@ -136,16 +125,17 @@ class DrawLine(Command):
             screenSession.execute(stream)
             return screenSession
         except:
-            print(f"[x] Command failed, Please ensure all your inputs for this command are correct")
+            self.syntaxError(self.instructions)
 
 
 class RenderText(Command):
     HEX_ID = 0x4
+    instructions = "\n\tRender text: render_text <x (int)> <y (int)> <color (str)> <text (str)> \n\tExample: render_text 2 2 white hello brother"
 
     def to_hex(self, screenSession=None):
         allowed_args = 4 #This is the minimum args acceptible, no upper bound
         if len(self.args) < allowed_args:
-            print(f"[x] Command failed, Please ensure all your inputs for this command are correct")
+            self.syntaxError(self.instructions)
 
         textWithSpaces = []
         x, y, colorIndex, *textChars = self.args
@@ -165,7 +155,7 @@ class RenderText(Command):
             return screenSession
             #return stream
         except:
-            print(f"[x] Command failed, Please ensure all your inputs for this command are correct")
+            self.syntaxError(self.instructions)
             
 
     def textCharsToOrd(self, lists):
@@ -180,6 +170,7 @@ class RenderText(Command):
 
 class CursorMove(Command):
     HEX_ID = 0x5
+    instructions = "\n\tCursor move: cursor_move <x (int)> <y (int)> \n\tExample: cursor_move 2 2"  
 
     def to_hex(self, screenSession=None):
         if (screenSession is None):
@@ -187,7 +178,7 @@ class CursorMove(Command):
 
         allowed_args = 2
         if len(self.args) != allowed_args:
-            print(f"[x] Command failed, Please ensure all your inputs for this command are correct")
+            self.syntaxError(self.instructions)
 
         x, y = self.args
         try:
@@ -199,18 +190,19 @@ class CursorMove(Command):
             return screenSession
         except:
             print("len", len(self.args))
-            print(f"[x] Command failed, Please ensure all your inputs for this command are correct")
+            self.syntaxError(self.instructions)
 
 class DrawAtCursor(Command):
     HEX_ID = 0x6
     allowed_args = 2
+    instructions = "\n\tDraw at cursor: Draw_at_cursor <char (str)> <color (str)> \n\tExample: Draw_at_cursor X white"
 
     def to_hex(self, screenSession=None):
         if (screenSession is None):
             print("Screen session must be initiated before drawing at cursor.")
             return screenSession
         if len(self.args) != self.allowed_args:
-            print(f"[x] Command failed, Please ensure you have entered the right number of args")
+            self.syntaxError(self.instructions) 
             return screenSession
 
         char, color = self.args
@@ -222,20 +214,21 @@ class DrawAtCursor(Command):
             screenSession.execute(stream)
             return screenSession
         except:
-            print(f"[x] Command failed, Please ensure all your inputs for this command are correct")
+            self.syntaxError(self.instructions)
         
 
 
 class ClearScreen(Command):
     HEX_ID = 0x7
     allowed_args = 0
+    instructions = "\n\tClear screen: clear_screen"
 
     def to_hex(self, screenSession=None):
         if (screenSession is None):
             print("Screen session must be initiated before clearing screen.")
             return screenSession
         if len(self.args) != self.allowed_args:
-            print(f"[x] Command failed, Please ensure all your inputs for this command are correct")
+            self.syntaxError(self.instructions)
         
         stream = [self.HEX_ID, self.allowed_args, 0xFF]
         screenSession.execute(stream)
@@ -246,13 +239,13 @@ class ClearScreen(Command):
 class Render(Command):
     HEX_ID = 0x8
     allowed_args = 0
+    instructions = "\n\tRender: render"
     
     def to_hex(self, screenSession=None):
         if (screenSession is None):
             print("Screen session must be initiated before rendering.")
         if len(self.args) != self.allowed_args:
-            print(len(self.args))
-            print(f"[x] Command failed, Please ensure all your inputs for this command are correct")
+            self.syntaxError(self.instructions)
 
         stream = [self.HEX_ID, self.allowed_args, 0xFF]
 
