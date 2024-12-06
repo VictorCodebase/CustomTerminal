@@ -38,8 +38,7 @@ class MoveCursor(Executor):
         self.x = self.hex_stream[2]
         self.y = self.hex_stream[3]
 
-    def execute(self, screen):
-        cursor_state = {"x": 0, "y": 0}
+    def execute(self, screen, cursor_state):
         if not self.integrity_check(2):
             return False
 
@@ -65,12 +64,15 @@ class DrawCharacter(Executor):
         self.color = self.hex_stream[4]
         self.char = self.hex_stream[5]
 
-    def execute(self, screen):
+    def execute(self, screen, cursor_state):
         # Check the integrity of the command
         if not self.integrity_check(4):  # Expecting 4 arguments: x, y, color, char
             return False
         try:
-            screen[self.x][self.y] = chr(self.char)
+            posx = self.x + cursor_state["x"]
+            posy = self.y + cursor_state["y"]
+            print(f"Drawing character {chr(self.char)} at ({posx}, {posy}) from cursor position {cursor_state}")
+            screen[self.x + cursor_state["x"]][self.y + cursor_state["y"]] = chr(self.char)
         except IndexError:
             print("Error: Coordinates out of bounds.")
         return True
@@ -151,6 +153,7 @@ class CommandSwitch: #controller
     def __init__(self):
         self.screenInit = False
         self.screen = None
+        self.cursor_position = {"x": 0, "y": 0} #default cursor position
         self.commandQueue = Queue()
         self.COMMANDS = {
             0x01: ScreenSetup,
@@ -189,7 +192,7 @@ class CommandSwitch: #controller
             print("Command", command)
             raise ValueError("Command not recognized")
         if command == 0x08:
-            return self.COMMANDS[command]().execute(self.commandQueue, self.screen)
+            return self.COMMANDS[command]().execute(self.commandQueue, self.screen, self.cursor_position)
        
         self.appendCommand()
 
@@ -197,11 +200,11 @@ class CommandSwitch: #controller
         return is_done
 
 class RenderAll(CommandSwitch):
-    def execute(self, commandQueue, screen):
+    def execute(self, commandQueue, screen, cursor_position):
         while not commandQueue.empty():
             commandStream = commandQueue.get()
             command = commandStream[0]
-            self.COMMANDS[command](commandStream).execute(screen)
+            self.COMMANDS[command](commandStream).execute(screen, cursor_position)
             print("Executed command", command)
         print("\n".join("".join(row) for row in screen))
         return True

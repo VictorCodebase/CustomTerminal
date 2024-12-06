@@ -4,7 +4,7 @@ import convertor
 class CommandFactory:
     COMMANDS = {
         "screen_setup": convertor.ScreenSetup, # e.g. screen_setup 80 24 16colors
-        "draw_char": convertor.DrawCharacter, #eg. draw_char 3 4 white A
+        "draw_char": convertor.DrawCharacter, #eg. draw_char 0 0 white A
         "draw_line": convertor.DrawLine, #eg. draw_line 6 2 3 10 white *
         "render_text": convertor.RenderText, #eg render_text 2 2 white hello brother
         "cursor_move": convertor.CursorMove, #eg cursor_move 2 2
