@@ -2,6 +2,7 @@ from queue import Queue
 
 class Executor:
 
+    #TODO: See how colors can be derived from hex back to color.
     def __init__(self, hex_stream):
         self.hex_stream = hex_stream
         
@@ -17,7 +18,27 @@ class Executor:
             print("Trailing",self.trailingHex)
             raise ValueError("Trailing byte is not 0xFF")
         return True
-            
+    
+    def generate_mono_colors():
+        return {"text": "", "reset": "\033[0m"}
+
+    def generate_16_colors():
+        base_colors = list(range(30, 38))  # 0–7 standard colors (30–37)
+        bright_colors = list(range(90, 98))  # 8–15 bright colors (90–97)
+
+        color_map = {}
+        for i, code in enumerate(base_colors + bright_colors):
+            color_map[i] = f"\033[{code}m"
+        color_map["reset"] = "\033[0m"  # Reset color
+        return color_map
+    
+    def generate_256_colors():
+        color_map = {}
+        for i in range(256):
+            color_map[i] = f"\033[38;5;{i}m"
+        color_map["reset"] = "\033[0m"  # Reset color
+        return color_map
+
 
 class ScreenSetup(Executor):
     def __init__(self, hex_stream):
@@ -29,8 +50,16 @@ class ScreenSetup(Executor):
     def execute(self):
         if not self.integrity_check(3):
             return False
+        color_modes = {
+            0x00: self.generate_mono_colors,
+            0x01: self.generate_16_colors,
+            0x02: self.generate_256_colors
+            }
+        
         print(f"Screen setup: {self.width}x{self.height}, color mode {self.color}")
+
         return [[" " for _ in range(self.width)] for _ in range(self.height)]
+    
 
 class MoveCursor(Executor):
     def __init__(self, hex_stream):
@@ -184,12 +213,16 @@ class ClearScreen(Executor):
         print("Screen cleared, cursor reset to (0, 0)")
         return True
 
-class CommandSwitch: #controller
+
+
+class CommandSwitch: #controller - Stores session object state
     def __init__(self):
         self.screenInit = False
         self.screen = None
         self.cursor_position = {"x": 0, "y": 0} #default cursor position
         self.commandQueue = Queue()
+        self.colorMode = None
+        
         self.COMMANDS = {
             0x01: ScreenSetup,
             0x02: DrawCharacter,
@@ -215,14 +248,23 @@ class CommandSwitch: #controller
             print("Screen not initialized")
             return False
         
+        
+        if command not in self.COMMANDS:
+            print("Command", command)
+            raise ValueError("Command not recognized")
+        
+        #! Special commands
+        # Screen setup
         if command == 0x01:
             self.screen = self.COMMANDS[command](self.hex_stream).execute()
             self.screenInit = True
             return True
         
-        if command not in self.COMMANDS:
-            print("Command", command)
-            raise ValueError("Command not recognized")
+        # Clear screen
+        if command == 0x07:
+            return self.COMMANDS[command](self.hex_stream).execute(self.screen, self.cursor_position)
+        
+        # Render all
         if command == 0x08:
             return self.COMMANDS[command]().execute(self.commandQueue, self.screen, self.cursor_position)
        
