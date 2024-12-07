@@ -2,7 +2,6 @@ from queue import Queue
 
 class Executor:
 
-    #TODO: See how colors can be derived from hex back to color.
     def __init__(self, hex_stream):
         self.hex_stream = hex_stream
         
@@ -19,10 +18,42 @@ class Executor:
             raise ValueError("Trailing byte is not 0xFF")
         return True
     
-    def generate_mono_colors():
+
+
+
+class ScreenSetup(Executor):
+
+    def __init__(self, hex_stream):
+        super().__init__(hex_stream)       
+        self.width = self.hex_stream[2]
+        self.height = self.hex_stream[3]
+        self.color_mode_index = self.hex_stream[4]
+        self.color_mode_map = {}
+
+        #set the color mode
+        self.color_mode_options = {
+            0x00: self.generate_mono_colors,
+            0x01: self.generate_16_colors,
+            0x02: self.generate_256_colors
+            }
+
+    def execute(self):
+        if not self.integrity_check(3):
+            return False
+
+        print(f"Screen setup: {self.width}x{self.height}, color mode {self.color_mode_index}")
+        try:
+            self.color_mode_map = self.color_mode_options[self.color_mode_index]()
+        except KeyError:
+            print(f"No color mode exists for the provided color_mode_index: {self.color_mode_map}")
+            return False
+        print("color dict: " ,self.color_mode_map)
+        return [[[" " for _ in range(self.width)] for _ in range(self.height)], self.color_mode_map]
+    
+    def generate_mono_colors(self):
         return {"text": "", "reset": "\033[0m"}
 
-    def generate_16_colors():
+    def generate_16_colors(self):
         base_colors = list(range(30, 38))  # 0–7 standard colors (30–37)
         bright_colors = list(range(90, 98))  # 8–15 bright colors (90–97)
 
@@ -32,34 +63,12 @@ class Executor:
         color_map["reset"] = "\033[0m"  # Reset color
         return color_map
     
-    def generate_256_colors():
+    def generate_256_colors(self):
         color_map = {}
         for i in range(256):
             color_map[i] = f"\033[38;5;{i}m"
         color_map["reset"] = "\033[0m"  # Reset color
         return color_map
-
-
-class ScreenSetup(Executor):
-    def __init__(self, hex_stream):
-        super().__init__(hex_stream)       
-        self.width = self.hex_stream[2]
-        self.height = self.hex_stream[3]
-        self.color = self.hex_stream[4]
-
-    def execute(self):
-        if not self.integrity_check(3):
-            return False
-        color_modes = {
-            0x00: self.generate_mono_colors,
-            0x01: self.generate_16_colors,
-            0x02: self.generate_256_colors
-            }
-        
-        print(f"Screen setup: {self.width}x{self.height}, color mode {self.color}")
-
-        return [[" " for _ in range(self.width)] for _ in range(self.height)]
-    
 
 class MoveCursor(Executor):
     def __init__(self, hex_stream):
@@ -75,7 +84,7 @@ class MoveCursor(Executor):
         max_width = len(screen[0])
         max_height = len(screen)
         if not (0 <= self.x < max_width and 0 <= self.y < max_height):
-            print(f"Error: Target position ({self.x}, {self.y}) is out of bounds.")
+            print(f"Error: Target position ({self.x}, {self.y}) is out of bounds. Try x values between 0 and {max_width - 1}, and y values between 0 and {max_height - 1}")
             return False
 
         # Update cursor state
@@ -86,24 +95,29 @@ class MoveCursor(Executor):
 
 
 class DrawCharacter(Executor):
-    def __init__(self, hex_stream):
+    def __init__(self, color_mode_map, hex_stream):
         super().__init__(hex_stream)
         self.x = self.hex_stream[2]
         self.y = self.hex_stream[3]
         self.color = self.hex_stream[4]
         self.char = self.hex_stream[5]
+        self.color_mode_map = color_mode_map
 
     def execute(self, screen, cursor_state):
         # Check the integrity of the command
         if not self.integrity_check(4):  # Expecting 4 arguments: x, y, color, char
             return False
+        print(f"Drawing character {chr(self.char)} at X: ({self.x}, Y: {self.y})")
         try:
             startx = self.x + cursor_state["x"]
             starty = self.y + cursor_state["y"]
+            max_width = len(screen[0])
+            max_height = len(screen)
             print(f"Drawing character {chr(self.char)} at ({startx}, {starty}) from cursor position {cursor_state}")
-            screen[self.x + cursor_state["x"]][self.y + cursor_state["y"]] = chr(self.char)
+            print("color map, ", self.color_mode_map)
+            screen[self.y + cursor_state["y"]][self.x + cursor_state["x"]] = (f"{self.color_mode_map[int(self.color)]} {chr(self.char)} {self.color_mode_map['reset']}")
         except IndexError:
-            print("Error: Coordinates out of bounds.")
+            print(f"Error: Target position ({startx}, {starty}) from cursor position ({cursor_state["x"]}, {cursor_state["y"]}) is out of bounds. Try x values between 0 and {max_width - 1}, and y values between 0 and {max_height - 1}")
         return True
 
 class DrawLine(Executor):
@@ -221,7 +235,7 @@ class CommandSwitch: #controller - Stores session object state
         self.screen = None
         self.cursor_position = {"x": 0, "y": 0} #default cursor position
         self.commandQueue = Queue()
-        self.colorMode = None
+        self.color_mode_map = {}
         
         self.COMMANDS = {
             0x01: ScreenSetup,
@@ -256,7 +270,11 @@ class CommandSwitch: #controller - Stores session object state
         #! Special commands
         # Screen setup
         if command == 0x01:
-            self.screen = self.COMMANDS[command](self.hex_stream).execute()
+            
+            #Returns the screen matrix[0] and a color mode map[1]
+            screen_data = self.COMMANDS[command](self.hex_stream).execute()
+            self.screen = screen_data[0]
+            self.color_mode_map = screen_data[1]
             self.screenInit = True
             return True
         
@@ -266,18 +284,16 @@ class CommandSwitch: #controller - Stores session object state
         
         # Render all
         if command == 0x08:
-            return self.COMMANDS[command]().execute(self.commandQueue, self.screen, self.cursor_position)
-       
-        self.appendCommand()
+            return self.COMMANDS[command]().execute(self.commandQueue, self.screen, self.color_mode_map, self.cursor_position)
 
-        
+        self.appendCommand()
         return is_done
 
 class RenderAll(CommandSwitch):
-    def execute(self, commandQueue, screen, cursor_position):
+    def execute(self, commandQueue, screen, color_mode_map,cursor_position):
         while not commandQueue.empty():
             commandStream = commandQueue.get()
             command = commandStream[0]
-            self.COMMANDS[command](commandStream).execute(screen, cursor_position)
+            self.COMMANDS[command](color_mode_map, commandStream).execute(screen, cursor_position)
         print("\n".join("".join(row) for row in screen))
         return True
