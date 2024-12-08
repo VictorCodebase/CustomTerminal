@@ -14,7 +14,6 @@ class Executor:
         if self.instructionLength != expectedLength:
             raise ValueError(f"Expected length {expectedLength}, but got {self.instructionLength}")
         if self.trailingHex != 0xFF:
-            print("Trailing",self.trailingHex)
             raise ValueError("Trailing byte is not 0xFF")
         return True
     
@@ -47,8 +46,7 @@ class ScreenSetup(Executor):
         except KeyError:
             print(f"No color mode exists for the provided color_mode_index: {self.color_mode_map}")
             return False
-        print("color dict: " ,self.color_mode_map)
-        return [[[" " for _ in range(self.width)] for _ in range(self.height)], self.color_mode_map]
+        return [[["_" for _ in range(self.width)] for _ in range(self.height)], self.color_mode_map]
     
     def generate_mono_colors(self):
         return {"text": "", "reset": "\033[0m"}
@@ -71,10 +69,11 @@ class ScreenSetup(Executor):
         return color_map
 
 class MoveCursor(Executor):
-    def __init__(self, hex_stream):
+    def __init__(self, color_mode_map, hex_stream):
         super().__init__(hex_stream)
         self.x = self.hex_stream[2]
         self.y = self.hex_stream[3]
+        
 
     def execute(self, screen, cursor_state):
         if not self.integrity_check(2):
@@ -114,14 +113,12 @@ class DrawCharacter(Executor):
             max_width = len(screen[0])
             max_height = len(screen)
             print(f"Drawing character {chr(self.char)} at ({startx}, {starty}) from cursor position {cursor_state}")
-            print("color map, ", self.color_mode_map)
             screen[self.y + cursor_state["y"]][self.x + cursor_state["x"]] = (f"{self.color_mode_map[int(self.color)]} {chr(self.char)} {self.color_mode_map['reset']}")
         except IndexError:
             print(f"Error: Target position ({startx}, {starty}) from cursor position ({cursor_state["x"]}, {cursor_state["y"]}) is out of bounds. Try x values between 0 and {max_width - 1}, and y values between 0 and {max_height - 1}")
         return True
-
 class DrawLine(Executor):
-    def __init__(self, hex_stream):
+    def __init__(self, color_mode_map, hex_stream):
         super().__init__(hex_stream)
         self.x1 = self.hex_stream[2]
         self.y1 = self.hex_stream[3]
@@ -129,6 +126,7 @@ class DrawLine(Executor):
         self.y2 = self.hex_stream[5]
         self.color = self.hex_stream[6]
         self.char = self.hex_stream[7]
+        self.color_mode_map = color_mode_map
 
     def execute(self, screen, cursor_state):
         if not self.integrity_check(6):  # Expecting 6 arguments: x1, y1, x2, y2, color, char
@@ -140,7 +138,7 @@ class DrawLine(Executor):
         end_x = self.x2 + cursor_state["x"]
         end_y = self.y2 + cursor_state["y"]
 
-        char_representation = chr(self.char)
+        char_representation = f"{self.color_mode_map[int(self.color)]}{chr(self.char)}{self.color_mode_map['reset']}"
 
         try:
             # Draw a horizontal line
@@ -182,33 +180,35 @@ class DrawLine(Executor):
 
 
 class RenderText(Executor):
-    def __init__(self, hex_stream):
+    def __init__(self, color_mode_map, hex_stream):
         super().__init__(hex_stream)
         self.x = self.hex_stream[2]
         self.y = self.hex_stream[3]
         self.color = self.hex_stream[4]
         self.text = self.hex_stream[5:hex_stream.index(0xFF)]
+        self.color_mode_map = color_mode_map
 
     def execute(self, screen, cursor_state):
         startx = self.x + cursor_state["x"]
         starty = self.y + cursor_state["y"]
         try:
             for i, char in enumerate(self.text):
-                screen[starty][startx + i] = chr(char)
+                screen[starty][startx + i] = f"{self.color_mode_map[int(self.color)]}{chr(char)}{self.color_mode_map['reset']}"
 
         except IndexError:
             print("Error: Coordinates out of bounds.")
         return True
 
 class RendarCharOnCursor(Executor):
-    def __init__(self, hex_stream):
+    def __init__(self, color_mode_map, hex_stream):
         super().__init__(hex_stream)
         self.color = self.hex_stream[2]
         self.char = self.hex_stream[3]
+        self.color_mode_map = color_mode_map
 
     def execute(self, screen, cursor_state):
         try:
-            screen[cursor_state["y"]][cursor_state["x"]] = chr(self.char)
+            screen[cursor_state["y"]][cursor_state["x"]] = f"{self.color_mode_map[int(self.color)]}{chr(self.char)}{self.color_mode_map['reset']}"
         except IndexError:
             print("Error: Coordinates out of bounds.")
         print(f"Character {chr(self.char)} rendered at cursor position {cursor_state}")
@@ -228,8 +228,16 @@ class ClearScreen(Executor):
         return True
 
 
+# This  the command switch is doing:
+# - Maintains a screen's session state
+#   -> Keep track of command queue - used during execution
+#   -> Keep track of cursor position - used during execution
+#   -> Keep track of screen state - used during execution
+#!   -> Keep track of color mode - used during command conversion to hex?
+#
+# - Executes commands based on the command ID (special commands and regular commands)
 
-class CommandSwitch: #controller - Stores session object state
+class CommandSwitch: 
     def __init__(self):
         self.screenInit = False
         self.screen = None
@@ -270,7 +278,6 @@ class CommandSwitch: #controller - Stores session object state
         #! Special commands
         # Screen setup
         if command == 0x01:
-            
             #Returns the screen matrix[0] and a color mode map[1]
             screen_data = self.COMMANDS[command](self.hex_stream).execute()
             self.screen = screen_data[0]

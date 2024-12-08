@@ -1,5 +1,13 @@
 import executor
 
+#TODO: the executor needs to know how to conveert color to hex. ie, will white be 0x01 (mono) or 0x08 (16colors) or 0x0F (256colors)
+
+class SessionShared:
+    def __init__(self, session, color_mode):
+        self.session = session
+        self.color_mode = color_mode
+        
+
 class Command:
     #TODO: Ensure user does not input anything that can be converted to 0xFF or be larger than input size
     def __init__(self, session, args):
@@ -44,8 +52,9 @@ class ScreenSetup(Command):
 
     def to_hex(self, screenSession=None):
         if screenSession is not None:
-            print("Screen session already initiated. Please clear screen before setting up a new one.")
-            return screenSession
+            proceed = input("A screen session is already initiated. Do you wish to get a new screen session? (y - yes, any key - no): ")
+            if proceed.lower() != "y":
+                return screenSession
 
         allowed_args = 3
         if len(self.args) != allowed_args:
@@ -56,6 +65,7 @@ class ScreenSetup(Command):
         try:
             if color not in color_mode_map: 
                 self.syntaxError(self.instructions)
+            self.session_color_mode = color
             width = int(width)
             height = int(height)
             color = int(color_mode_map[color])
@@ -69,7 +79,8 @@ class ScreenSetup(Command):
 
         intiatedScreenSession = executor.CommandSwitch()
         intiatedScreenSession.execute(stream)
-        return intiatedScreenSession
+        sessionShared = SessionShared(intiatedScreenSession, self.session_color_mode)
+        return sessionShared
 
 
 class DrawCharacter(Command):
@@ -86,19 +97,20 @@ class DrawCharacter(Command):
             self.syntaxError(self.instructions)
         
         x, y, color, char = self.args
-
+        session_color_mode = screenSession.color_mode
 
         try:
             x = int(x)
             y = int(y)
             char = ord(char)
-            color = self.convert_color(color, "monochrome")
+            color = self.convert_color(color, session_color_mode)
+
             stream = [self.HEX_ID, allowed_args, x, y, color, char, 0xFF]
-            screenSession.execute(stream)
+            screenSession.session.execute(stream)
             return screenSession
-            #return stream #draw_char 3 4 blue A
         except:
             self.syntaxError(self.instructions)
+            return screenSession
 
 class DrawLine(Command):
     HEX_ID = 0x3
@@ -107,25 +119,30 @@ class DrawLine(Command):
     def to_hex(self, screenSession=None):
         if (screenSession is None):
             print("Screen session must be initiated before running this command")
+            return screenSession
+        
         allowed_args = 6
         if len(self.args) != allowed_args:
             self.syntaxError(self.instructions)
+            return screenSession
         
         x1, y1, x2, y2, colorIndex, char = self.args
+        session_color_mode = screenSession.color_mode
 
         try:
             x1 = int(x1)
             x2 = int(x2)
             y1 = int(y1)
             y2 = int(y2)
-            colorIndex = self.convert_color(colorIndex, "monochrome")
+            colorIndex = self.convert_color(colorIndex, session_color_mode)
             char = ord(char)
 
             stream = [self.HEX_ID, allowed_args, x1, y1, x2, y2, colorIndex, char, 0xFF]
-            screenSession.execute(stream)
+            screenSession.session.execute(stream)
             return screenSession
         except:
             self.syntaxError(self.instructions)
+            return screenSession
 
 
 class RenderText(Command):
@@ -142,16 +159,17 @@ class RenderText(Command):
         for text in textChars:
             textWithSpaces.append(text + " ")
         chars = self.textCharsToOrd(textWithSpaces)
+        sessionColorMode = screenSession.color_mode
 
         try:
             x = int(x)
             y = int(y)
-            colorIndex = self.convert_color(colorIndex, "monochrome")
+            colorIndex = self.convert_color(colorIndex, sessionColorMode)
 
             stream = [self.HEX_ID, allowed_args + len(chars), x, y, colorIndex]
             stream.extend(chars)
             stream.append(0xFF)
-            screenSession.execute(stream)
+            screenSession.session.execute(stream)
             return screenSession
             #return stream
         except:
@@ -186,10 +204,9 @@ class CursorMove(Command):
             y = int(y)
 
             stream = [self.HEX_ID, allowed_args, x, y, 0xFF]
-            screenSession.execute(stream)
+            screenSession.session.execute(stream)
             return screenSession
         except:
-            print("len", len(self.args))
             self.syntaxError(self.instructions)
 
 class DrawAtCursor(Command):
@@ -206,12 +223,14 @@ class DrawAtCursor(Command):
             return screenSession
 
         char, color = self.args
-        color = self.convert_color(color, "monochrome")
+        session_color_mode = screenSession.color_mode
 
         try:
             char = ord(char)
+            color = self.convert_color(color, session_color_mode)
+
             stream = [self.HEX_ID, self.allowed_args, color, char, 0xFF]
-            screenSession.execute(stream)
+            screenSession.session.execute(stream)
             return screenSession
         except:
             self.syntaxError(self.instructions)
@@ -231,7 +250,7 @@ class ClearScreen(Command):
             self.syntaxError(self.instructions)
         
         stream = [self.HEX_ID, self.allowed_args, 0xFF]
-        screenSession.execute(stream)
+        screenSession.session.execute(stream)
         return screenSession
 
 
@@ -249,7 +268,6 @@ class Render(Command):
 
         stream = [self.HEX_ID, self.allowed_args, 0xFF]
 
-        print("Screen session:", screenSession)
-        screenSession.execute(stream)
+        screenSession.session.execute(stream)
         return screenSession
         

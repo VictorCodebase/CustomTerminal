@@ -35,7 +35,7 @@ def main():
         try:
             session = CommandFactory.create(command_name, session, args).to_hex(session)
         except ValueError as e:
-            print(f"\n[X] Command failed\nYour entered command \"{command_name}\" in the input \"{command}\" is not valid. \nHere are commands you can run: \n{instructions}")
+            print(f"\n[X] Command failed\nYour entered command \"{command_name}\" in the input \"{command}\" is not valid. \nHere are commands you can run: \n{instructions} \n\nIf pasting the command fails, internal program error might have occured. Please debug.")
             continue   
 
     
