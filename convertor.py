@@ -1,6 +1,5 @@
 import executor
 
-#TODO: the executor needs to know how to conveert color to hex. ie, will white be 0x01 (mono) or 0x08 (16colors) or 0x0F (256colors)
 
 class SessionShared:
     def __init__(self, session, color_mode):
@@ -285,3 +284,25 @@ class Render(Command):
         screenSession.session.execute(stream)
         return screenSession
         
+
+
+class CommandFactory:
+    COMMANDS = {
+        "screen_setup": ScreenSetup, # e.g. screen_setup 80 24 16colors
+        "draw_char": DrawCharacter, #eg. draw_char 0 0 white A
+        "draw_line": DrawLine, #eg. draw_line 60 2 3 10 white *
+        "render_text": RenderText, #eg render_text 40 2 white hello brother
+        "cursor_move": CursorMove, #eg cursor_move 20 5
+        "draw_at_cursor": DrawAtCursor, #eg Draw_at_cursor X white
+        "render": Render, #eg render
+        "clear_screen": ClearScreen #eg clear_screen
+    }
+    
+
+    @staticmethod
+    def create(command_name, session, args):
+        if command_name not in CommandFactory.COMMANDS:
+            raise ValueError(f"Unknown command: {command_name}")
+        return CommandFactory.COMMANDS[command_name](session, args) # ie ScreenSetup(args)
+
+

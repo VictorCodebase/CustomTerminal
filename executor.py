@@ -106,16 +106,15 @@ class DrawCharacter(Executor):
         # Check the integrity of the command
         if not self.integrity_check(4):  # Expecting 4 arguments: x, y, color, char
             return False
-        print(f"Drawing character {chr(self.char)} at X: ({self.x}, Y: {self.y})")
         try:
             startx = self.x + cursor_state["x"]
             starty = self.y + cursor_state["y"]
             max_width = len(screen[0])
             max_height = len(screen)
-            print(f"Drawing character {chr(self.char)} at ({startx}, {starty}) from cursor position {cursor_state}")
+            print(f"\t> Drawing character {chr(self.char)} at ({startx}, {starty}) from cursor position {cursor_state}")
             screen[self.y + cursor_state["y"]][self.x + cursor_state["x"]] = (f"{self.color_mode_map[int(self.color)]} {chr(self.char)} {self.color_mode_map['reset']}")
         except IndexError:
-            print(f"Error: Target position ({startx}, {starty}) from cursor position ({cursor_state["x"]}, {cursor_state["y"]}) is out of bounds. Try x values between 0 and {max_width - 1}, and y values between 0 and {max_height - 1}")
+            print(f"Error: draw_char coordinates out of bounds.")
         return True
 class DrawLine(Executor):
     def __init__(self, color_mode_map, hex_stream):
@@ -174,7 +173,7 @@ class DrawLine(Executor):
 
             print(f"Line drawn from ({start_x}, {start_y}) to ({end_x}, {end_y}) relative to cursor position {cursor_state}")
         except IndexError:
-            print("Error: Coordinates out of bounds.")
+            print("Error: draw_line coordinates out of bounds.")
         return True
 
 
