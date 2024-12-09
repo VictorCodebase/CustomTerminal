@@ -73,8 +73,8 @@ class ScreenSetup(Command):
             self.syntaxError(self.instructions)
 
         stream = [self.HEX_ID, allowed_args, width, height, color, 0xFF]
-        # hex_stream = [f"0x{byte:02X}" for byte in stream]
-        # print("Hex Stream:", " ".join(hex_stream))
+        hex_stream = [f"0x{byte:02X}" for byte in stream]
+        print("\n: input translated to hex stream: ", " ".join(hex_stream))
 
 
         intiatedScreenSession = executor.CommandSwitch()
@@ -106,6 +106,9 @@ class DrawCharacter(Command):
             color = self.convert_color(color, session_color_mode)
 
             stream = [self.HEX_ID, allowed_args, x, y, color, char, 0xFF]
+            hex_stream = [f"0x{byte:02X}" for byte in stream]
+            print("\n: input translated to hex stream: ", " ".join(hex_stream))
+
             screenSession.session.execute(stream)
             return screenSession
         except:
@@ -138,6 +141,8 @@ class DrawLine(Command):
             char = ord(char)
 
             stream = [self.HEX_ID, allowed_args, x1, y1, x2, y2, colorIndex, char, 0xFF]
+            hex_stream = [f"0x{byte:02X}" for byte in stream]
+            print("\n: input translated to hex stream: ", " ".join(hex_stream))
             screenSession.session.execute(stream)
             return screenSession
         except:
@@ -169,6 +174,8 @@ class RenderText(Command):
             stream = [self.HEX_ID, allowed_args + len(chars), x, y, colorIndex]
             stream.extend(chars)
             stream.append(0xFF)
+            hex_stream = [f"0x{byte:02X}" for byte in stream]
+            print("\n:","input translated to hex stream: ", " ".join(hex_stream))
             screenSession.session.execute(stream)
             return screenSession
             #return stream
@@ -230,6 +237,9 @@ class DrawAtCursor(Command):
             color = self.convert_color(color, session_color_mode)
 
             stream = [self.HEX_ID, self.allowed_args, color, char, 0xFF]
+            hex_stream = [f"0x{byte:02X}" for byte in stream]
+            print("\n: input translated to hex stream: ", " ".join(hex_stream))
+
             screenSession.session.execute(stream)
             return screenSession
         except:
@@ -250,6 +260,8 @@ class ClearScreen(Command):
             self.syntaxError(self.instructions)
         
         stream = [self.HEX_ID, self.allowed_args, 0xFF]
+        hex_stream = [f"0x{byte:02X}" for byte in stream]
+        print("\n: input translated to hex stream: ", " ".join(hex_stream))
         screenSession.session.execute(stream)
         return screenSession
 
@@ -267,6 +279,8 @@ class Render(Command):
             self.syntaxError(self.instructions)
 
         stream = [self.HEX_ID, self.allowed_args, 0xFF]
+        hex_stream = [f"0x{byte:02X}" for byte in stream]
+        print("\n: input translated to hex stream: ", " ".join(hex_stream))
 
         screenSession.session.execute(stream)
         return screenSession

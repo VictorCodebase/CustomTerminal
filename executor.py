@@ -46,7 +46,7 @@ class ScreenSetup(Executor):
         except KeyError:
             print(f"No color mode exists for the provided color_mode_index: {self.color_mode_map}")
             return False
-        return [[["_" for _ in range(self.width)] for _ in range(self.height)], self.color_mode_map]
+        return [[[" " for _ in range(self.width)] for _ in range(self.height)], self.color_mode_map]
     
     def generate_mono_colors(self):
         return {"text": "", "reset": "\033[0m"}
