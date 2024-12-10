@@ -1,4 +1,7 @@
 import convertor
+import parser
+import executor
+
 import argparse
 
 
@@ -17,6 +20,8 @@ def main():
     while running:
         if args.readable:
             session = run_readable(session, instructions)
+        else:
+            session = run_hex(session, instructions)
 
         
 
@@ -31,9 +36,40 @@ def run_readable(session, instructions):
         return session
     return session
 
-def run_hex():
+def run_hex(session, instructions):
+    render = [0x08, 0x00, 0xFF]
+
     command = input("\nEnter command (HEX): ")
-    return
+    if "," in command:
+        command_stream = command.split(",")
+    else:
+        command_stream = command.split(" ")
+
+    
+    try:
+        hex_stream = [int(item.strip(), 16) for item in command_stream if item.strip()]
+    except:
+        print(f"\n[X] Command failed\nYour input \"{command}\" contains a value that is not valid hex.")
+        return session
+    
+    hex_command_streams = parser.Parse(hex_stream).hex()
+    
+
+    session = executor.CommandSwitch()
+
+    for hex_command_stream in hex_command_streams:
+        hex_command_stream.append(0xFF)
+        print(hex_command_stream)
+        session.execute(hex_command_stream)
+
+
+
+    session.execute(render) 
+    # 0x01 0x03 0x50 0x18 0x01 0x03 0x06 0x3C 0x02 0x03 0x0A 0x07 0x2A 0x02 0x04 0x00 0x00 0x06 0x41 0x06 0x02 0x01 0x58 0xFF
+    # 0x01 0x03 0x50 0x18 0x01 0x04 0x12 0x28 0x02 0x07 0x68 0x65 0x6C 0x6C 0x6F 0x20 0x62 0x72 0x6F 0x74 0x68 0x65 0x72 0x20 0xFF
+    
+
+    return session
     
 if __name__ == "__main__":
     main()

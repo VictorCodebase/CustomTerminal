@@ -125,6 +125,7 @@ class DrawLine(Command):
         
         allowed_args = 6
         if len(self.args) != allowed_args:
+            print("allowed args: ", allowed_args)
             self.syntaxError(self.instructions)
             return screenSession
         

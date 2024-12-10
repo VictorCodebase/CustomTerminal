@@ -106,6 +106,9 @@ class DrawCharacter(Executor):
         # Check the integrity of the command
         if not self.integrity_check(4):  # Expecting 4 arguments: x, y, color, char
             return False
+        if self.color not in self.color_mode_map:
+            print(f"Error: Invalid color mode {self.color}")
+            return False
         try:
             startx = self.x + cursor_state["x"]
             starty = self.y + cursor_state["y"]
@@ -115,6 +118,7 @@ class DrawCharacter(Executor):
             screen[self.y + cursor_state["y"]][self.x + cursor_state["x"]] = (f"{self.color_mode_map[int(self.color)]} {chr(self.char)} {self.color_mode_map['reset']}")
         except IndexError:
             print(f"Error: draw_char coordinates out of bounds.")
+            return False
         return True
 class DrawLine(Executor):
     def __init__(self, color_mode_map, hex_stream):
@@ -129,6 +133,10 @@ class DrawLine(Executor):
 
     def execute(self, screen, cursor_state):
         if not self.integrity_check(6):  # Expecting 6 arguments: x1, y1, x2, y2, color, char
+            return False
+        
+        if self.color not in self.color_mode_map:
+            print(f"Error: Invalid color mode {self.color}")
             return False
 
         # Adjust coordinates based on cursor position
@@ -190,6 +198,11 @@ class RenderText(Executor):
     def execute(self, screen, cursor_state):
         startx = self.x + cursor_state["x"]
         starty = self.y + cursor_state["y"]
+
+        if self.color not in self.color_mode_map:
+            print(f"Error: Invalid color mode {self.color}")
+            return False
+        
         try:
             for i, char in enumerate(self.text):
                 screen[starty][startx + i] = f"{self.color_mode_map[int(self.color)]}{chr(char)}{self.color_mode_map['reset']}"
@@ -206,6 +219,11 @@ class RendarCharOnCursor(Executor):
         self.color_mode_map = color_mode_map
 
     def execute(self, screen, cursor_state):
+
+        if self.color not in self.color_mode_map:
+            print(f"Error: Invalid color mode {self.color}")
+            return False
+        
         try:
             screen[cursor_state["y"]][cursor_state["x"]] = f"{self.color_mode_map[int(self.color)]}{chr(self.char)}{self.color_mode_map['reset']}"
         except IndexError:
@@ -279,6 +297,8 @@ class CommandSwitch:
         if command == 0x01:
             #Returns the screen matrix[0] and a color mode map[1]
             screen_data = self.COMMANDS[command](self.hex_stream).execute()
+            if screen_data == False:
+                return False
             self.screen = screen_data[0]
             self.color_mode_map = screen_data[1]
             self.screenInit = True
