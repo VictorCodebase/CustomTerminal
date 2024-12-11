@@ -17,7 +17,7 @@ class HexCommandValidator:
                 0x07: 1,
             }
 
-    def validifyHexInput(self):
+    def validify_hex_input(self):
         for hex in self.hex_stream:
             try:
                 int(hex)
@@ -25,9 +25,28 @@ class HexCommandValidator:
                 logging.error("Invalid command, the hex stream contains a non-hex value")
                 return False
         return True
+    
+    def validate_length_bytes(self):
+        index = 0
+        while index < len(self.hex_stream):
+            if self.hex_stream[index] == self.END_OF_FILE:
+                return True
+            if index + 1 >= len(self.hex_stream):
+                print(f"Invalid command at index {index}: Length byte is missing.")
+                return False
+
+            length = self.hex_stream[index + 1]
+            if index + 2 + length > len(self.hex_stream):
+                print(f"Invalid command at index {index}: Length {length} goes out of bounds.")
+                return False
+
+            index += 2 + length
+        
+        print("Invalid command: No EOF byte found")
+        return False
         
 
-    def validifyHexCommands(self, commands):
+    def validify_hex_commands(self, commands):
         received_length = len(self.hex_stream)
         calculated_length = 0
         

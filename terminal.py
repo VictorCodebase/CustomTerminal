@@ -42,27 +42,43 @@ def run_readable(session, instructions):
 
 def run_hex():
     command = input("\nEnter command (HEX): ")
-    if "," in command:
-        command_stream = command.split(",")
-    else:
-        command_stream = command.split(" ")
+    command_stream = [item.strip() for item in command.replace(",", " ").split()]
 
     
     try:
-        hex_stream = [int(item.strip(), 16) for item in command_stream if item.strip()]
+        hex_stream = [int(item, 16) for item in command_stream if item]
     except:
         print(f"\n[X] Command failed\nYour input \"{command}\" contains a value that is not valid hex.")
         return
     
-    hex_commands = HexParser.HexParser(hex_stream).hex()
-    
+    # Ensure input stream has no critical errors (that will break the parser)
     hex_command_validator = HexCommandValidator.HexCommandValidator(hex_stream)
-    input_valid = hex_command_validator.validifyHexInput()
-    commands_valid = hex_command_validator.validifyHexCommands(hex_commands)
+    if not hex_command_validator.validify_hex_input():
+        return
+    if not hex_command_validator.validate_length_bytes():
+        return
+    
+    # Parse the hex stream into commands
+    hex_parser = HexParser.HexParser(hex_stream)
+    hex_commands = hex_parser.hex()
 
-    if input_valid and commands_valid:
-        handler = HexCommandHandler.HexCommandHandler()
-        handler.toExecutor(hex_commands)
+    # Ensure the commands are valid
+    if not hex_command_validator.validify_hex_commands(hex_commands):
+        return
+    
+    # Execute the commands
+    handler = HexCommandHandler.HexCommandHandler()
+    handler.toExecutor(hex_commands)
+
+    # hex_commands = HexParser.HexParser(hex_stream).hex()
+    
+    # hex_command_validator = HexCommandValidator.HexCommandValidator(hex_stream)
+    # input_valid = hex_command_validator.validifyHexInput()
+    # commands_valid = hex_command_validator.validifyHexCommands(hex_commands)
+
+    # if input_valid and commands_valid:
+    #     handler = HexCommandHandler.HexCommandHandler()
+    #     handler.toExecutor(hex_commands)
 
 if __name__ == "__main__":
     main()
