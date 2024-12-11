@@ -2,9 +2,10 @@ import string_channel
 from hex_pipeline import HexCommandHandler
 from hex_pipeline import HexCommandValidator
 from hex_pipeline import HexParser
-import executor
 
 import argparse
+import logging
+logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
 
 
@@ -36,7 +37,7 @@ def run_readable(session, instructions):
     try:
         session = string_channel.CommandFactory.create(command_name, session, args).to_hex(session)
     except ValueError as e:
-        print(f"\n[X] Command failed\nYour entered command \"{command_name}\" in the input \"{command}\" is not valid. \nHere are commands you can run: \n{instructions} \n\nIf pasting the command fails, internal program error might have occured. Please debug.")
+        logging.error(f"\n[X] Command failed\nYour entered command \"{command_name}\" in the input \"{command}\" is not valid. \nHere are commands you can run: \n{instructions} \n\nIf pasting the command fails, internal program error might have occured. Please debug.")
         return session
     return session
 
@@ -47,13 +48,13 @@ def run_hex():
     
     try:
         hex_stream = [int(item, 16) for item in command_stream if item]
-    except:
-        print(f"\n[X] Command failed\nYour input \"{command}\" contains a value that is not valid hex.")
+    except ValueError:
+        logging.error(f"\n[X] Command failed\nYour input \"{command}\" contains a value that is not valid hex.")
         return
     
     # Ensure input stream has no critical errors (that will break the parser)
     hex_command_validator = HexCommandValidator.HexCommandValidator(hex_stream)
-    if not hex_command_validator.validify_hex_input():
+    if not hex_command_validator.validate_hex_input():
         return
     if not hex_command_validator.validate_length_bytes():
         return
@@ -63,22 +64,13 @@ def run_hex():
     hex_commands = hex_parser.hex()
 
     # Ensure the commands are valid
-    if not hex_command_validator.validify_hex_commands(hex_commands):
+    if not hex_command_validator.validate_hex_commands(hex_commands):
         return
     
     # Execute the commands
     handler = HexCommandHandler.HexCommandHandler()
     handler.toExecutor(hex_commands)
 
-    # hex_commands = HexParser.HexParser(hex_stream).hex()
-    
-    # hex_command_validator = HexCommandValidator.HexCommandValidator(hex_stream)
-    # input_valid = hex_command_validator.validifyHexInput()
-    # commands_valid = hex_command_validator.validifyHexCommands(hex_commands)
-
-    # if input_valid and commands_valid:
-    #     handler = HexCommandHandler.HexCommandHandler()
-    #     handler.toExecutor(hex_commands)
 
 if __name__ == "__main__":
     main()
