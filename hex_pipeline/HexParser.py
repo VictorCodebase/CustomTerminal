@@ -5,19 +5,19 @@ logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 class HexParser:
     END_OF_FILE = 0xFF
     
-    def __init__(self, hexStream):
-        self.hexStream = hexStream
+    def __init__(self, hex_stream):
+        self.hex_stream = hex_stream
 
     def hex(self):
         commands = []
         index = 0
 
-        while index < len(self.hexStream):
-            if self.hexStream[index] == 255:
+        while index < len(self.hex_stream):
+            if self.hex_stream[index] == self.END_OF_FILE:
                 return commands 
 
-            length = self.hexStream[index + 1] #byte storing the length of the command
-            command = self.hexStream[index:index + 2 + length]
+            length = self.hex_stream[index + 1] #byte storing the length of the command
+            command = self.hex_stream[index:index + 2 + length]
             command.append(self.END_OF_FILE)
             commands.append(command)
 

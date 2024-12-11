@@ -46,13 +46,14 @@ def run_hex():
     command_stream = [item.strip() for item in command.replace(",", " ").split()]
 
     
+    # Pre-validation of the raw command string
     try:
         hex_stream = [int(item, 16) for item in command_stream if item]
     except ValueError:
-        logging.error(f"\n[X] Command failed\nYour input \"{command}\" contains a value that is not valid hex.")
+        logging.error(f"[X] Command failed\nYour input \"{command}\" contains a value that is not valid hex.")
         return
     
-    # Ensure input stream has no critical errors (that will break the parser)
+    # Validate hex stream (to ensure that it won't break the parser)
     hex_command_validator = HexCommandValidator.HexCommandValidator(hex_stream)
     if not hex_command_validator.validate_hex_input():
         return

@@ -18,13 +18,14 @@ class HexCommandValidator:
             }
 
     def validate_hex_input(self):
-        for hex in self.hex_stream:
-            try:
-                int(hex)
-            except:
-                logging.error("Invalid command, the hex stream contains a non-hex value")
-                return False
-        return True
+        try:
+            for item in self.command_stream:
+                int(item, 16)  # Try converting to hex to check validity
+            return True
+        except ValueError:
+            logging.error(f"[X] Command failed\nYour input \"{self.command_stream}\" contains a value that is not valid hex.")
+            return False
+
     
     def validate_length_bytes(self):
         index = 0
