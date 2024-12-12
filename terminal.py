@@ -37,6 +37,7 @@ def run_readable(session, instructions):
     command_stream = [item.strip() for item in command.replace(",", " ").split()]
 
     command_pipeline = StringCommandController.StringCommandController.command_pipeline(command_stream)
+    if not command_pipeline: return None
     if not command_pipeline.validate_command_structure(): return None
     if not command_pipeline.validate_input(): return None
     hex_stream = command_pipeline.parse_input()

@@ -65,6 +65,24 @@ COMMANDS = {
         "signature": ['int', 'int', 'string', 'string'],
         "instructions": "\n\tRender text: render_text <x (int)> <y (int)> <color (string)> <text (string array)>\n\tExample: render_text 40 2 white hello brother"
     },
+    "cursor_move": {
+        "hex_id": 0x05,
+        "arg_length": 2,
+        "signature": ['int', 'int'],
+        "instructions": "\n\tCursor move: cursor_move <x (int)> <y (int)>\n\tExample: cursor_move 20 5"
+    },
+    "draw_at_cursor": {
+        "hex_id": 0x06,
+        "arg_length": 2,
+        "signature": ['string', 'char'],
+        "instructions": "\n\tDraw at cursor: draw_at_cursor <color (string)> <char (char)>\n\tExample: draw_at_cursor white A"
+    },
+    "clear_screen": {
+        "hex_id": 0x07,
+        "arg_length": 0,
+        "signature": [],
+        "instructions": "\n\tClear screen: clear_screen\n\tExample: clear_screen"
+    },
     "render": {
         "hex_id": 0x08,
         "arg_length": 0,
