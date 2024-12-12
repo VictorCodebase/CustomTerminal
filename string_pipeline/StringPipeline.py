@@ -27,16 +27,17 @@ class CommandPipeline:
             return False
 
         expected_arg_length = command_info['arg_length']
-        hex_id = command_info['hex_id']
+        expected_hex_id = command_info['hex_id']
+        probable_command_instructions = command_info['instructions']
 
-        if len(self.command) != expected_arg_length + 1:  # +1 for the command name
-            logging.error(f"Invalid number of arguments. {command_info['Instructions']}")
+        if len(self.command) != expected_arg_length + 1 and expected_arg_length < 99:  # +1 for the command name
+            logging.error(f"Invalid number of arguments. {probable_command_instructions}")
             return False
 
         # make command info accessible to other methods as command structure is accurate
-        self.hex_id = hex_id
+        self.hex_id = expected_hex_id
         self.command_length = expected_arg_length
-        self.command_instructions = command_info['Instructions']
+        self.command_instructions = probable_command_instructions
         return True
     
 
@@ -44,7 +45,7 @@ class CommandPipeline:
         raise NotImplementedError
 
     def command_handler(self, hex_stream):
-        self.session.execute(hex_stream)
+        self.session.session.execute(hex_stream)
 
 
 class ScreenSetupPipeLine(CommandPipeline):
@@ -81,15 +82,56 @@ class ScreenSetupPipeLine(CommandPipeline):
     def command_handler(self, hex_stream):
         initiated_screen_session = executor.CommandSwitch()
         initiated_screen_session.execute(hex_stream)
-        SessionManager.SessionManager.set_session(initiated_screen_session)
+        SessionManager.SessionManager.set_session(SessionManager.SessionShared(initiated_screen_session, "16colors"))
         print(self.session)
+
+
+
+class DrawCharPipeline(CommandPipeline):
+    
+        def validate_input(self):
+            print(self.session)
+            if not self.session or self.session.session is None:
+                logging.error("No screen has been set up. Please run 'screen_setup' first.")
+                return False
+            
+            if not self.validate_command_structure():
+                return False
+            try:
+                _, x, y, color, char = self.command
+            except ValueError:
+                logging.error("Invalid number of arguments. draw_char <x> <y> <color> <char>")
+                return False
+    
+            if color not in Constants.COLOR_MAP_16COLORS:
+                logging.error(f"Invalid color '{color}'. Valid options are: {', '.join(Constants.COLOR_MAP_16COLORS.keys())}")
+                return False
+    
+            try:
+                int(x)
+                int(y)
+            except ValueError:
+                logging.error("X and Y must be integers.")
+                return False
+    
+            return True
+    
+        def parse_input(self):
+            _, x, y, color, char = self.command
+            x = int(x)
+            y = int(y)
+            color = Constants.COLOR_MAP_16COLORS[color]
+            char = ord(char)
+            stream = [self.hex_id, self.command_length, x, y, color, char, Constants.END_OF_FILE]
+            hex_stream = [f"0x{byte:02X}" for byte in stream]
+            logging.info("Input translated to hex stream: " + " ".join(hex_stream))
+            return stream
 
 
 class RenderPipeline(CommandPipeline):
 
     def validate_input(self):
-        print(self.session)
-        if not self.session:
+        if not self.session or self.session.session is None:
             logging.error("No screen has been set up. Please run 'screen_setup' first.")
             return False
         
@@ -104,3 +146,88 @@ class RenderPipeline(CommandPipeline):
         logging.info("Input translated to hex stream: " + " ".join(hex_stream))
         return stream
 
+class DrawLinePipeLine(CommandPipeline):
+    
+        def validate_input(self):
+            if not self.session or self.session.session is None:
+                logging.error("No screen has been set up. Please run 'screen_setup' first.")
+                return False
+            
+            if not self.validate_command_structure():
+                return False
+            
+            try:
+                _, x1, y1, x2, y2, color, char = self.command
+            except ValueError:
+                logging.error("Invalid number of arguments. draw_line <x> <y> <length> <color> <char>")
+                return False
+    
+            if color not in Constants.COLOR_MAP_16COLORS:
+                logging.error(f"Invalid color '{color}'. Valid options are: {', '.join(Constants.COLOR_MAP_16COLORS.keys())}")
+                return False
+    
+            try:
+                int(x1)
+                int(y1)
+                int(x2)
+                int(y2)
+            except ValueError:
+                logging.error("X, Y, and length must be integers.")
+                return False
+    
+            return True
+    
+        def parse_input(self):
+            _, x1, y1, x2, y2, color, char = self.command
+            x1 = int(x1)
+            y1 = int(y1)
+            x2 = int(x2)
+            y2 = int(y2)
+            color = Constants.COLOR_MAP_16COLORS[color]
+            char = ord(char)
+            stream = [self.hex_id, self.command_length, x1, y1, x2, y2, color, char, Constants.END_OF_FILE]
+            hex_stream = [f"0x{byte:02X}" for byte in stream]
+            logging.info("Input translated to hex stream: " + " ".join(hex_stream))
+            return stream
+
+class RenderTextPipeLine(CommandPipeline):
+        
+            def validate_input(self):
+                if not self.session or self.session.session is None:
+                    logging.error("No screen has been set up. Please run 'screen_setup' first.")
+                    return False
+                
+                if not self.validate_command_structure():
+                    return False
+                
+                try:
+                    _, x, y, color, *text = self.command
+                except ValueError:
+                    logging.error("Invalid number of arguments. render_text <x> <y> <color> <text>")
+                    return False
+        
+                if color not in Constants.COLOR_MAP_16COLORS:
+                    logging.error(f"Invalid color '{color}'. Valid options are: {', '.join(Constants.COLOR_MAP_16COLORS.keys())}")
+                    return False
+        
+                try:
+                    int(x)
+                    int(y)
+                except ValueError:
+                    logging.error("X and Y must be integers.")
+                    return False
+        
+                return True
+        
+            def parse_input(self):
+                # Necessary command bytes are up to index 4, the rest are text
+                text_with_spaces = " ".join(self.command[4:])
+                _, x, y, color, *text = self.command
+                x = int(x)
+                y = int(y)
+                color = Constants.COLOR_MAP_16COLORS[color]
+                text = [ord(char) for char in text_with_spaces]
+                stream = [self.hex_id, self.command_length, x, y, color] + text + [Constants.END_OF_FILE]
+                hex_stream = [f"0x{byte:02X}" for byte in stream]
+                logging.info("Input translated to hex stream: " + " ".join(hex_stream))
+                return stream

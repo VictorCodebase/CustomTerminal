@@ -45,21 +45,30 @@ COMMANDS = {
         "hex_id": 0x01,
         "arg_length": 3,
         "signature": ['int', 'int', 'string'],
-        "Instructions": "\n\tScreen setup: screen_setup <screen_width (int)> <screen_height (int)> <color_mode (monochrome, 16colors, or 256colors)>\n\tExample: screen_setup 80 24 16colors"
+        "instructions": "\n\tScreen setup: screen_setup <screen_width (int)> <screen_height (int)> <color_mode (monochrome, 16colors, or 256colors)>\n\tExample: screen_setup 80 24 16colors"
     },
     "draw_char": {
         "hex_id": 0x02,
         "arg_length": 4,
-        "signature": ['int', 'int', 'string', 'char']
+        "signature": ['int', 'int', 'string', 'char'],
+        "instructions": "\n\tDraw character: draw_char <x (int)> <y (int)> <color (string)> <char (char)>\n\tExample: draw_char 0 0 white A"
     },
     "draw_line": {
         "hex_id": 0x03,
         "arg_length": 6,
-        "signature": ['int', 'int', 'int', 'string', 'char']
+        "signature": ['int', 'int', 'int', 'string', 'char'],
+        "instructions": "\n\tDraw line: draw_line <x (int)> <y (int)> <length (int)> <color (string)> <char (char)>\n\tExample: draw_line 60 2 3 10 white *"
+    },
+    "render_text": {
+        "hex_id": 0x04,
+        "arg_length": 99,
+        "signature": ['int', 'int', 'string', 'string'],
+        "instructions": "\n\tRender text: render_text <x (int)> <y (int)> <color (string)> <text (string array)>\n\tExample: render_text 40 2 white hello brother"
     },
     "render": {
         "hex_id": 0x08,
         "arg_length": 0,
-        "signature": []
+        "signature": [],
+        "instructions": "\n\tRender: render\n\tExample: render"
     }
 }
