@@ -89,7 +89,7 @@ class MoveCursor(Executor):
         # Update cursor state
         cursor_state["x"] = self.x
         cursor_state["y"] = self.y
-        print(f"Cursor moved to ({self.x}, {self.y})")
+        print(f"> Cursor moved to ({self.x}, {self.y})")
         return True
 
 
@@ -114,7 +114,7 @@ class DrawCharacter(Executor):
             starty = self.y + cursor_state["y"]
             max_width = len(screen[0])
             max_height = len(screen)
-            print(f"\t> Drawing character {chr(self.char)} at ({startx}, {starty}) from cursor position {cursor_state}")
+            print(f"> Drawing character {chr(self.char)} at ({startx}, {starty}) from cursor position {cursor_state}")
             screen[self.y + cursor_state["y"]][self.x + cursor_state["x"]] = (f"{self.color_mode_map[int(self.color)]} {chr(self.char)} {self.color_mode_map['reset']}")
         except IndexError:
             print(f"Error: draw_char coordinates out of bounds.")
@@ -179,7 +179,7 @@ class DrawLine(Executor):
                         err += dx
                         y += sy
 
-            print(f"Line drawn from ({start_x}, {start_y}) to ({end_x}, {end_y}) relative to cursor position {cursor_state}")
+            print(f"> Line drawn from ({start_x}, {start_y}) to ({end_x}, {end_y}) relative to cursor position {cursor_state}")
         except IndexError:
             print("Error: draw_line coordinates out of bounds.")
         return True
@@ -206,7 +206,7 @@ class RenderText(Executor):
         try:
             for i, char in enumerate(self.text):
                 screen[starty][startx + i] = f"{self.color_mode_map[int(self.color)]}{chr(char)}{self.color_mode_map['reset']}"
-
+            print(f"> Text rendered at ({startx}, {starty}) from cursor position {cursor_state}")
         except IndexError:
             print("Error: Coordinates out of bounds.")
         return True
@@ -228,7 +228,7 @@ class RendarCharOnCursor(Executor):
             screen[cursor_state["y"]][cursor_state["x"]] = f"{self.color_mode_map[int(self.color)]}{chr(self.char)}{self.color_mode_map['reset']}"
         except IndexError:
             print("Error: Coordinates out of bounds.")
-        print(f"Character {chr(self.char)} rendered at cursor position {cursor_state}")
+        print(f"> Character {chr(self.char)} rendered at cursor position {cursor_state}")
         return True
     
 class ClearScreen(Executor):
@@ -241,18 +241,9 @@ class ClearScreen(Executor):
                 screen[i][j] = " "
         cursor_state["x"] = 0
         cursor_state["y"] = 0
-        print("Screen cleared, cursor reset to (0, 0)")
+        print("> Screen cleared, cursor reset to (0, 0)")
         return True
 
-
-# This  the command switch is doing:
-# - Maintains a screen's session state
-#   -> Keep track of command queue - used during execution
-#   -> Keep track of cursor position - used during execution
-#   -> Keep track of screen state - used during execution
-#!   -> Keep track of color mode - used during command conversion to hex?
-#
-# - Executes commands based on the command ID (special commands and regular commands)
 
 class CommandSwitch: 
     def __init__(self):

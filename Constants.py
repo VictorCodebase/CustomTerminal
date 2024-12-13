@@ -1,5 +1,6 @@
 
 END_OF_FILE = 0xFF
+MAX_ARG = 99
 
 COLOR_MAP_16COLORS = {
     "black": 0x00, "red": 0x01, "green": 0x02, "yellow": 0x03,

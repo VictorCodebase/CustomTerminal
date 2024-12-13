@@ -27,7 +27,7 @@ class HexCommandValidator:
 
             length = self.hex_stream[index + 1]
             if index + 2 + length > len(self.hex_stream):
-                logging.error(f"Invalid command at index {index}: Length {length} goes out of bounds.")
+                logging.error(f"Ivalid command at index {index}: Length {length} goes out of bounds.")
                 return False
 
             index += 2 + length
@@ -63,8 +63,9 @@ class HexCommandValidator:
             
             # Validate the length based on the retrieved command_info
             if len(command_instructions) != command_info['arg_length']:
-                logging.error(f"Invalid number of arguments for command with hex_id '{hex_id}'. Expected {command_info['arg_length']} arguments, but got {len(command_instructions)}.")
-                return False
+                if int(command_info['arg_length']) < Constants.MAX_ARG:
+                    logging.error(f"Invalid number of arguments for command with hex_id '{hex_id}'. Expected {command_info['arg_length']} arguments, but got {len(command_instructions)}.")
+                    return False
 
             # Add up the command lengths
             calculated_length += command_length
@@ -86,9 +87,11 @@ class HexCommandValidator:
         command_info = next((info for info in Constants.COMMANDS.values() if info["hex_id"] == hex_id), None)
 
         if not command_info:
-            raise ValueError(f"Unknown hex command ID '{hex(hex_id)}'.")
+            logging.error(f"Unknown hex command ID '{hex(hex_id)}'.")
+            return False
 
         if len(args) != command_info['arg_length']:
-            raise ValueError(f"Invalid number of arguments for command with hex_id '{hex_id}'. Expected {command_info['arg_length']} arguments, but got {len(args)}.")
-        
+            if int(command_info['arg_length']) < Constants.MAX_ARG: 
+                logging.error(f"Inal number of rguments for command with hex_id '{hex_id}'. Expected {command_info['arg_length']} arguments, but got {len(args)}.")
+                return False
         return True

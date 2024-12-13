@@ -203,13 +203,15 @@ class RenderTextPipeLine(CommandPipeline):
     
         def parse_input(self):
             # Necessary command bytes are up to index 4, the rest are text
-            text_with_spaces = " ".join(self.command[4:])
+            COMMAND_BYTES = 3
+            text_with_spaces = " ".join(self.command[COMMAND_BYTES + 1:]) #Plus one because [x:] is inclusive
+            actual_command_length = COMMAND_BYTES + len(text_with_spaces)
             _, x, y, color, *text = self.command
             x = int(x)
             y = int(y)
             color = Constants.COLOR_MAP_16COLORS[color]
             text = [ord(char) for char in text_with_spaces]
-            stream = [self.hex_id, self.command_length, x, y, color] + text + [Constants.END_OF_FILE]
+            stream = [self.hex_id, actual_command_length, x, y, color] + text + [Constants.END_OF_FILE]
             hex_stream = [f"0x{byte:02X}" for byte in stream]
             logging.info("Input translated to hex stream: " + " ".join(hex_stream))
             return stream
