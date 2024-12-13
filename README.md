@@ -73,6 +73,10 @@ Run the program:
 python terminal.py
 ```
 
+## String Execution Pipeline
+
+### Architecture:
+
 ## Running the solution  
 ### Preriquisites
 
