@@ -8,8 +8,6 @@ In my solution, I implement a terminal that can take either:
 - hex streams (`0x01 0x03 0x50 0x18 0x01 0x03 0x06 0x3C 0x02 0x03 0x0A 0x07 0x2A 0xFF`)
 -  string inputs (`screen_setup 80 24 16colors` - translated internally to hex: **0x01 0x03 0x50 0x18 0x01 0xFF** )
 
-and interprate them to run respective tasks on the screen  
-
 The challenge was to ensure that the two pipelines (hex and string) remained consistent, robust, and easy to extend. Sufficiently respecting the SOLID principles
 
 
