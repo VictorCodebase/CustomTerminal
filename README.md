@@ -14,6 +14,19 @@ The challenge was to ensure that the two pipelines (hex and string) remained con
 
 
 ## Hex Execution Pipeline  
+```mermaid
+graph TD;
+    Terminal --> run_hex
+    run_hex --> HexCommandValidator
+    HexCommandValidator-->validate_hex_input;
+    HexCommandValidator-->validate_length_bytes;
+    HexCommandValidator-->validate_hex_commands;
+    run_hex-->HexParser;
+    HexParser-->parse_hex;
+    run_hex-->HexCommandHandler;
+    HexCommandHandler --> to_executor
+    
+```
 
 ### Architecture
 
@@ -27,7 +40,7 @@ The challenge was to ensure that the two pipelines (hex and string) remained con
 **Solid principles implemented to achieve this are:**  
 
 - `Single Responsibility Principle (SRP)` - Each class and method handles a single aspect of the pipeline. For example, validation, parsing, and execution are separated into distinct methods
-- `Open/Closed Principle (OCP)` - The COMMANDS dictionary allows for easy extension with new commands without modifying existing code.
+- `Open/Closed Principle (OCP)` - The [COMMANDS dictionary](https://github.com/VictorCodebase/CustomTerminal/blob/main/Constants.py) allows for easy extension with new commands without modifying existing code.
 
 
 ### Example flow
