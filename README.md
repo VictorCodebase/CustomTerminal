@@ -8,12 +8,23 @@ In my solution, I implement a terminal that can take either:
 - hex streams (`0x01 0x03 0x50 0x18 0x01 0x03 0x06 0x3C 0x02 0x03 0x0A 0x07 0x2A 0xFF`)
 -  string inputs (`screen_setup 80 24 16colors` - translated internally to hex: **0x01 0x03 0x50 0x18 0x01 0xFF** )
 
-and interprate them to run respective tasks on the screen  
-
 The challenge was to ensure that the two pipelines (hex and string) remained consistent, robust, and easy to extend. Sufficiently respecting the SOLID principles
 
 
 ## Hex Execution Pipeline  
+```mermaid
+graph TD;
+    Terminal --> run_hex
+    run_hex --> HexCommandValidator
+    HexCommandValidator-->validate_hex_input;
+    HexCommandValidator-->validate_length_bytes;
+    HexCommandValidator-->validate_hex_commands;
+    run_hex-->HexParser;
+    HexParser-->parse_hex;
+    run_hex-->HexCommandHandler;
+    HexCommandHandler --> to_executor
+    
+```
 
 ### Architecture
 
@@ -27,7 +38,7 @@ The challenge was to ensure that the two pipelines (hex and string) remained con
 **Solid principles implemented to achieve this are:**  
 
 - `Single Responsibility Principle (SRP)` - Each class and method handles a single aspect of the pipeline. For example, validation, parsing, and execution are separated into distinct methods
-- `Open/Closed Principle (OCP)` - The COMMANDS dictionary allows for easy extension with new commands without modifying existing code.
+- `Open/Closed Principle (OCP)` - The [COMMANDS dictionary](https://github.com/VictorCodebase/CustomTerminal/blob/main/Constants.py) allows for easy extension with new commands without modifying existing code.
 
 
 ### Example flow
@@ -52,15 +63,60 @@ Consider this input hex stream:
 |*Output: True*|
 
 ### Running Hex Commands
-To setup your environment and clone this project, please follow instructions here:  
-[**Instructions**](https://github.com/VictorCodebase/CustomTerminal/edit/main/README.md#running-the-solution)
+To setup your environment and clone this project, please follow instructions here: [**Instructions**](https://github.com/VictorCodebase/CustomTerminal/edit/main/README.md#running-the-solution)
 
 Run the program:
 ```bash
 python terminal.py
 ```
 
+## String Execution Pipeline
+
+```mermaid
+graph TD;
+    A[Terminal] --> B[run_string]
+    B --> C{StringCommandController}
+    C-- Switcher -->D[Super PipeLine -> SpecificPipeLine];
+    D-->validate_command_structure;
+    D-->validate_input;
+    D-->parse_input;
+    D-->command_handler;
+
+    
+```
+
+### Architecture:
+ The architecture follows this flow. Should you enter the command:
+```Bash
+screen_setup 80 24 16colors
+``` 
+
+|String Command Pipeline|
+|---|
+| 1. **CommandPipeline Intiation** - A correspoding execution pipeline class is instantiated by *StringCommandController* |
+|*Output: ScreenSetupPipeLine(CommandPipeline)*|
+| 2. **Command Structure Validation** Pipeline ensures the command has the right number of arguments |
+|*Output: True*|
+| 3. **Command Argument Validation** PipeLine ensures that all commands are recognized and are convertable to hex |
+|*Output: True*|
+| 4. **Command Parsed** PipeLine converts all commands to the expected Hex value according to the command |
+|*Output: 0x01 0x03 0x50 0x18 0x01 0xFF*|
+| 5. **Command Execution** PipeLine passes command to the executor to be ran |
+|*Output: True*|
+  
+
+> The goal of this Architecture is to embrace the Open/Closed Principle to ensure adding new commands does not affect the interparation of other commands.
+
+### Running String Commands
+To setup your environment and clone this project, please follow instructions here: [**Instructions**](https://github.com/VictorCodebase/CustomTerminal/edit/main/README.md#running-the-solution)
+
+Run the program:
+```Bash
+python terminal.py --readable
+```
+
 ## Running the solution  
+
 ### Preriquisites
 
 1. **Python 3.8 or higher**  
